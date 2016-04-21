@@ -71,6 +71,7 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
 	        return false;
         }
 		fragment = new CameraActivity();
+		fragment.cordova=cordova;
 		fragment.setEventListener(this);
 
 		cordova.getActivity().runOnUiThread(new Runnable() {

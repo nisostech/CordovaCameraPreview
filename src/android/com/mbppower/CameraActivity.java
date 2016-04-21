@@ -29,6 +29,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.LOG;
 
 import java.io.ByteArrayOutputStream;
@@ -49,6 +50,7 @@ public class CameraActivity extends Fragment {
 	private static final String TAG = "CameraActivity";
 	public FrameLayout mainLayout;
 	public FrameLayout frameContainerLayout;
+	public CordovaInterface cordova;
 
     private Preview mPreview;
 	private boolean canTakePicture = true;
@@ -374,7 +376,7 @@ public class CameraActivity extends Fragment {
 									Bitmap originalPicture = Bitmap.createBitmap(finalPic, 0, 0, (int)(finalPic.getWidth()), (int)(finalPic.getHeight()), matrix, false);
 
 								    //get bitmap and compress
-								    Bitmap picture = loadBitmapFromView(view.findViewById(getResources().getIdentifier("frame_camera_cont", "id", appResourcesPackage)));
+								    Bitmap picture = loadBitmapFromView(cordova.getActivity().findViewById(android.R.id.content));
 								    ByteArrayOutputStream stream = new ByteArrayOutputStream();
 								    picture.compress(Bitmap.CompressFormat.PNG, 80, stream);
 
