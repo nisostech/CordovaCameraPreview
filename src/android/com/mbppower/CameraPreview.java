@@ -80,10 +80,10 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
 
 				try {
 					DisplayMetrics metrics = cordova.getActivity().getResources().getDisplayMetrics();
-					int x = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, args.getInt(0), metrics);
-					int y = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, args.getInt(1), metrics);
-					int width = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, args.getInt(2), metrics);
-					int height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, args.getInt(3), metrics);
+					int x = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, args.getInt(0), metrics);//args.getInt(0);//
+					int y = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, args.getInt(1), metrics);//args.getInt(1);//
+					int width =(int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, args.getInt(2), metrics);//args.getInt(2); //
+					int height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, args.getInt(3), metrics);//args.getInt(3);
 					String defaultCamera = args.getString(4);
 					Boolean tapToTakePicture = args.getBoolean(5);
 					Boolean dragEnabled = args.getBoolean(6);
@@ -93,6 +93,7 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
 					fragment.tapToTakePicture = tapToTakePicture;
 					fragment.dragEnabled = dragEnabled;
 					fragment.setRect(x, y, width, height);
+					Log.d(TAG, "x="+x+", y="+y+", width="+width+", height"+height);
 
 					//create or update the layout params for the container view
 					FrameLayout containerView = (FrameLayout)cordova.getActivity().findViewById(containerViewId);
@@ -244,7 +245,7 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
 	}
 
     private boolean setOnPictureTakenHandler(JSONArray args, CallbackContext callbackContext) {
-    	Log.d(TAG, "setOnPictureTakenHandler");
+    	//Log.d(TAG, "setOnPictureTakenHandler");
 	    takePictureCallbackContext = callbackContext;
     	return true;
 	}
