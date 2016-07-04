@@ -227,7 +227,8 @@
 
                 //fix front mirroring
             if (self.sessionManager.defaultCamera == AVCaptureDevicePositionFront) {
-                CGAffineTransform matrix = CGAffineTransformTranslate(CGAffineTransformMakeScale(1, -1), 0, capturedCImage.extent.size.height);
+                NSLog(@"CGAffineTransformTranslate");
+                CGAffineTransform matrix = CGAffineTransformTranslate(CGAffineTransformMakeRotation(90.f * (M_PI / 180.f)), 0, capturedCImage.extent.size.height);
                 imageToFilter = [capturedCImage imageByApplyingTransform:matrix];
             } else {
                 imageToFilter = capturedCImage;
@@ -242,9 +243,22 @@
             } else {
                 finalCImage = imageToFilter;
             }
+                //    NSLog(@" photo image w %f h %f", CGImageGetWidth(finalCImage),CGImageGetHeight(finalCImage));
 
             CGImageRef finalImage = [self.cameraRenderController.ciContext createCGImage:finalCImage fromRect:finalCImage.extent];
-
+           if (self.sessionManager.defaultCamera == AVCaptureDevicePositionFront) {
+               CGSize imageSize = [[UIScreen mainScreen] bounds].size;
+            UIGraphicsBeginImageContextWithOptions(imageSize, NO, 0);
+            CGContextRef context = UIGraphicsGetCurrentContext();
+                //CGContextRotateCTM(context,90.f * (M_PI / 180.f));
+            UIGraphicsPushContext(context);
+            CGContextDrawImage(context, CGRectMake(0, 0, CGImageGetWidth(finalImage),CGImageGetHeight(finalImage)), finalImage);
+            UIGraphicsPopContext();
+                //    CGContextRotateCTM(context,-90.f * (M_PI / 180.f));
+            [self renderView:self.webView inContext:context];
+            UIImage *screenshot = UIGraphicsGetImageFromCurrentImageContext();
+            finalImage=[screenshot CGImage];
+           }
             ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
 
             dispatch_group_t group = dispatch_group_create();
@@ -269,22 +283,25 @@
                     orientation = ALAssetOrientationRight;
             }
 
+            if (self.sessionManager.defaultCamera == AVCaptureDevicePositionFront) {
+                orientation=ALAssetOrientationUp;
+            }
                 // task 1
-            dispatch_group_enter(group);
-            [library writeImageToSavedPhotosAlbum:previewImage orientation:ALAssetOrientationUp completionBlock:^(NSURL *assetURL, NSError *error) {
-                if (error) {
-                    NSLog(@"FAILED to save Preview picture.");
-                    photosAlbumError = error;
-                } else {
-                    previewPicturePath = [assetURL absoluteString];
-                    NSLog(@"previewPicturePath: %@", previewPicturePath);
-                }
-                dispatch_group_leave(group);
-            }];
-
+            /* dispatch_group_enter(group);
+             [library writeImageToSavedPhotosAlbum:previewImage orientation:ALAssetOrientationUp completionBlock:^(NSURL *assetURL, NSError *error) {
+             if (error) {
+             NSLog(@"FAILED to save Preview picture.");
+             photosAlbumError = error;
+             } else {
+             previewPicturePath = [assetURL absoluteString];
+             NSLog(@"previewPicturePath: %@", previewPicturePath);
+             }
+             dispatch_group_leave(group);
+             }];
+             */
                 //task 2
             dispatch_group_enter(group);
-            [library writeImageToSavedPhotosAlbum:finalImage orientation:orientation completionBlock:^(NSURL *assetURL, NSError *error) {
+            [library writeImageToSavedPhotosAlbum:finalImage orientation:orientation  completionBlock:^(NSURL *assetURL, NSError *error) {
                 if (error) {
                     NSLog(@"FAILED to save Original picture.");
                     photosAlbumError = error;
@@ -306,8 +323,9 @@
                     [params addObject:[NSString stringWithFormat:@"CameraPreview: %@ - %@ — %@", [photosAlbumError localizedDescription], [photosAlbumError localizedFailureReason], remedy]];
                 } else {
                         // Success returns two elements in the returned array
+                    [params addObject:@"Adding to adjust with Android"];
                     [params addObject:originalPicturePath];
-                    [params addObject:previewPicturePath];
+                        //[params addObject:previewPicturePath];
                 }
 
                 CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:params];
@@ -317,4 +335,57 @@
         }
     }];
 }
+
+- (void)renderView:(UIView*)view inContext:(CGContextRef)context
+{
+        //////////////////////////////////////////////////////////////////////////////////////
+        //																					//
+        // This works like a charm when you have multiple views that need to be rendered	//
+        // in a UIView when one of those views is an OpenGL CALayer view or a camera stream	//
+        // or some other view that will not work with - (UIImage*)screenshot, as defined 	//
+        // in Technical Q&A QA1703, "Screen Capture in UIKit Applications".					//
+        //																					//
+        //////////////////////////////////////////////////////////////////////////////////////
+
+
+        //
+        // -renderInContext: renders in the coordinate space of the layer,
+        // so we must first apply the layer's geometry to the graphics context.
+        //
+    CGContextSaveGState(context);
+
+
+        //
+        // Center the context around the window's anchor point.
+        //
+    CGContextTranslateCTM(context, [view center].x, [view center].y);
+
+
+        //
+        // Apply the window's transform about the anchor point.
+        //
+    CGContextConcatCTM(context, [view transform]);
+
+
+        //
+        // Offset by the portion of the bounds left of and above the anchor point.
+        //
+    CGContextTranslateCTM(context,
+                          -[view bounds].size.width * [[view layer] anchorPoint].x,
+                          -[view bounds].size.height * [[view layer] anchorPoint].y);
+
+
+        //
+        // Render the layer hierarchy to the current context.
+        //
+    [[view layer] renderInContext:context];
+
+
+        //
+        // Restore the context. BTW, you're done.
+        //
+    CGContextRestoreGState(context);
+}
+
+
 @end
