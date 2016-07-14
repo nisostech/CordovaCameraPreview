@@ -2,7 +2,10 @@ package com.mbppower;
 
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.pm.PackageManager;
 import android.hardware.Camera;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
@@ -29,6 +32,8 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
 
 	private CameraActivity fragment;
 	private CallbackContext takePictureCallbackContext;
+	private  CallbackContext startCameraContext;
+	private  JSONArray startCamArgs;
 	private int containerViewId = 1;
 	public CameraPreview(){
 		super();
@@ -41,10 +46,29 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
     	if (setOnPictureTakenHandlerAction.equals(action)){
     		return setOnPictureTakenHandler(args, callbackContext);
     	}
-        else if (startCameraAction.equals(action)){
-    		return startCamera(args, callbackContext);
-    	}
-	    else if (takePictureAction.equals(action)){
+		else if (startCameraAction.equals(action)){
+			Log.d(TAG, "startCameraAction");
+			if(cordova.hasPermission(android.Manifest.permission.CAMERA)){
+				return startCamera(args, callbackContext);
+			}else{
+				startCamArgs= args;
+				startCameraContext=callbackContext;
+				cordova.requestPermission(this, 1, android.Manifest.permission.CAMERA);
+			}
+			/*if (ContextCompat.checkSelfPermission(cordova.getActivity(),
+					android.Manifest.permission.CAMERA)
+					!= PackageManager.PERMISSION_GRANTED) {
+				startCamArgs= args;
+				startCameraContext=callbackContext;
+				ActivityCompat.requestPermissions(cordova.getActivity(),
+						new String[]{android.Manifest.permission.CAMERA},
+						1);
+				return  true;
+
+			}else
+				return startCamera(args, callbackContext);*/
+		}
+		else if (takePictureAction.equals(action)){
 		    return takePicture(args, callbackContext);
 	    }
 	    else if (setColorEffectAction.equals(action)){
@@ -65,6 +89,46 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
 
     	return false;
     }
+
+	public void onRequestPermissionResult(int requestCode, String[] permissions,
+										  int[] grantResults) throws JSONException
+	{
+		for(int r:grantResults)
+		{
+			if(r == PackageManager.PERMISSION_DENIED)
+			{
+				startCameraContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, "Permission denied"));
+				return;
+			}
+		}
+		Log.w(TAG,"onRequestPermissionsResult ");
+		startCamera(startCamArgs, startCameraContext);
+	}
+
+
+	//@Override
+	public void onRequestPermissionsResult(int requestCode,
+										   String permissions[], int[] grantResults) {
+		// If request is cancelled, the result arrays are empty.
+		Log.w(TAG,"onRequestPermissionsResult ");
+		if (grantResults.length > 0
+				&& grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+			Log.w(TAG,"time to start camera ");
+			startCamera(startCamArgs,startCameraContext);
+			// permission was granted, yay! Do the
+			// contacts-related task you need to do.
+
+		} else {
+			PluginResult pluginResult = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION);
+			pluginResult.setKeepCallback(true);
+			startCameraContext.sendPluginResult(pluginResult);
+
+			// permission denied, boo! Disable the
+			// functionality that depends on this permission.
+		}
+		return;
+	}
+
 
 	private boolean startCamera(final JSONArray args, CallbackContext callbackContext) {
         if(fragment != null){
