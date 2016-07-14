@@ -34,6 +34,7 @@
         self.cameraRenderController.dragEnabled = dragEnabled;
         self.cameraRenderController.tapToTakePicture = tapToTakePicture;
         self.cameraRenderController.sessionManager = self.sessionManager;
+        NSLog(@"x %f , y %f , width %f , height %f",x, y, width, height);
         self.cameraRenderController.view.frame = CGRectMake(x, y, width, height);
         self.cameraRenderController.delegate = self;
 
@@ -209,9 +210,10 @@
 
             if(maxWidth > 0 && maxHeight > 0) {
                 CGFloat scaleHeight = maxWidth/capturedImage.size.height;
+
                 CGFloat scaleWidth = maxHeight/capturedImage.size.width;
                 CGFloat scale = scaleHeight > scaleWidth ? scaleWidth : scaleHeight;
-
+                NSLog(@"scaleHeight %f width %f ",scaleWidth,scaleHeight);
                 CIFilter *resizeFilter = [CIFilter filterWithName:@"CILanczosScaleTransform"];
                 [resizeFilter setValue:[[CIImage alloc] initWithCGImage:[capturedImage CGImage]] forKey:kCIInputImageKey];
                 [resizeFilter setValue:[NSNumber numberWithFloat:1.0f] forKey:@"inputAspectRatio"];
@@ -229,6 +231,7 @@
             if (self.sessionManager.defaultCamera == AVCaptureDevicePositionFront) {
                 NSLog(@"CGAffineTransformTranslate");
                 CGAffineTransform matrix = CGAffineTransformTranslate(CGAffineTransformMakeRotation(90.f * (M_PI / 180.f)), 0, capturedCImage.extent.size.height);
+                    matrix=CGAffineTransformScale(matrix,0.5,0.5);
                 imageToFilter = [capturedCImage imageByApplyingTransform:matrix];
             } else {
                 imageToFilter = capturedCImage;
@@ -252,10 +255,11 @@
             CGContextRef context = UIGraphicsGetCurrentContext();
                 //CGContextRotateCTM(context,90.f * (M_PI / 180.f));
             UIGraphicsPushContext(context);
-            CGContextDrawImage(context, CGRectMake(0, 0, CGImageGetWidth(finalImage),CGImageGetHeight(finalImage)), finalImage);
+               NSLog(@"drawing it on %f %f %f %f",self.cameraRenderController.view.frame.origin.x,  self.cameraRenderController.view.frame.origin.y,self.cameraRenderController.view.frame.size.width,self.cameraRenderController.view.frame.size.height);
+            CGContextDrawImage(context, CGRectMake( self.cameraRenderController.view.frame.origin.x,  self.cameraRenderController.view.frame.origin.y, self.cameraRenderController.view.frame.size.width,self.cameraRenderController.view.frame.size.height), finalImage);
             UIGraphicsPopContext();
                 //    CGContextRotateCTM(context,-90.f * (M_PI / 180.f));
-            [self renderView:self.webView inContext:context];
+                [self renderView:self.webView inContext:context];
             UIImage *screenshot = UIGraphicsGetImageFromCurrentImageContext();
             finalImage=[screenshot CGImage];
            }
