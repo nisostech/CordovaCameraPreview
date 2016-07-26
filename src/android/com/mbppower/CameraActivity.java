@@ -99,6 +99,8 @@ public class CameraActivity extends Fragment {
 		this.height = height;
 	}
 
+
+
 	private void createCameraPreview(){
         if(mPreview == null) {
             setDefaultCameraId();
@@ -190,7 +192,7 @@ public class CameraActivity extends Fragment {
 	        });
         }
     }
-	
+
     private void setDefaultCameraId(){
 		
 		// Find the total number of cameras available
@@ -318,7 +320,28 @@ public class CameraActivity extends Fragment {
         canvas.drawBitmap(bitmap, -rect.left, -rect.top, null);
         return ret;
     }
-	
+
+	public void refocusCamera(){
+
+		Log.d(TAG, "################## refocus ######################");
+		getActivity().runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				mCamera.cancelAutoFocus();
+				mCamera.autoFocus(new Camera.AutoFocusCallback() {
+					@Override
+					public void onAutoFocus(boolean success, Camera camera) {
+						if (success){
+							takePicture(0,0);
+
+						}
+
+					}
+				});
+			}
+		});
+	}
+
 	public void takePicture(final double maxWidth, final double maxHeight){
 		final ImageView pictureView = (ImageView) view.findViewById(getResources().getIdentifier("picture_view", "id", appResourcesPackage));
 		if(mPreview != null) {
@@ -527,13 +550,27 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback {
     public void setCamera(Camera camera, int cameraId) {
         mCamera = camera;
         this.cameraId = cameraId;
+
         if (mCamera != null) {
+
             mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
             setCameraDisplayOrientation();
+			List<String> mFocusModes = mCamera.getParameters().getSupportedFocusModes();
+			Log.d(TAG, "mFocusModes"+ mFocusModes);
+			Camera.Parameters params = mCamera.getParameters();
+			if (mFocusModes.contains("continuous-picture")) {
+				params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+			} else if (mFocusModes.contains("continuous-video")){
+				params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+			} else if (mFocusModes.contains("auto")){
+				params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+			}
+			mCamera.setParameters(params);
             //mCamera.getParameters().setRotation(getDisplayOrientation());
             //requestLayout();
         }
     }
+
 
     public int getDisplayOrientation() {
     	return displayOrientation;
@@ -578,6 +615,8 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback {
         Log.d(TAG, "need to rotate preview " + displayOrientation + "deg");
         mCamera.setDisplayOrientation(displayOrientation);
     }
+
+
 
     public void switchCamera(Camera camera, int cameraId) {
         setCamera(camera, cameraId);
@@ -697,7 +736,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback {
         int targetHeight = h;
 
         // Try to find an size match aspect ratio and size
-        for (Camera.Size size : sizes) {
+       for (Camera.Size size : sizes) {
             double ratio = (double) size.width / size.height;
             if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
             if (Math.abs(size.height - targetHeight) < minDiff) {
@@ -708,13 +747,28 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback {
 
         // Cannot find the one match the aspect ratio, ignore the requirement
         if (optimalSize == null) {
-            minDiff = Double.MAX_VALUE;
+
+			optimalSize = sizes.get(0);
+			for(int i=0;i<sizes.size();i++) {
+				if(sizes.get(i).width > optimalSize.width)
+					optimalSize = sizes.get(i);
+			}
+
+
+            /*
+			minDiff = Double.MAX_VALUE;
+			boolean isFirst=true;
             for (Camera.Size size : sizes) {
-                if (Math.abs(size.height - targetHeight) < minDiff) {
-                    optimalSize = size;
-                    minDiff = Math.abs(size.height - targetHeight);
-                }
+				if(isFirst)
+					optimalSize = size;
+              //  if (Math.abs(size.height - targetHeight) < minDiff) {
+
+				if(optimalSize.width < size.width)
+					optimalSize=size;
+              //      minDiff = Math.abs(size.height - targetHeight);
+               // }
             }
+			*/
         }
 
         Log.d(TAG, "optimal preview size: w: " + optimalSize.width + " h: " + optimalSize.height);
